@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using App.Scripts.Libs.Factory;
 using App.Scripts.Scenes.SceneWordSearch.Features.Level.Models.Level;
 
@@ -21,8 +22,20 @@ namespace App.Scripts.Scenes.SceneWordSearch.Features.Level.BuilderLevelModel
 
         private List<char> BuildListChars(List<string> words)
         {
-            //напиши реализацию не меняя сигнатуру функции
-            throw new NotImplementedException();
+            List<Dictionary<char, int>> wordLetterCountsList = words
+                .Select(word => word.GroupBy(c => c)
+                    .ToDictionary(group => group.Key, group => group.Count()))
+                .ToList();
+
+            Dictionary<char, int> letterMaxCounts = wordLetterCountsList
+                .SelectMany(dict => dict)
+                .GroupBy(pair => pair.Key)
+                .ToDictionary(group => group.Key, group => group.Max(pair => pair.Value));
+            
+            List<char> listChars = letterMaxCounts
+                .SelectMany(kvp => Enumerable.Repeat(kvp.Key, kvp.Value)).ToList();
+            
+            return listChars;
         }
     }
 }
