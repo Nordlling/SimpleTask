@@ -42,6 +42,7 @@ namespace App.Scripts.Scenes.SceneChess.Systems
         {
             var grid = _containerChessLevel.Grid;
             var piece = grid.Get(move.From);
+            if (piece is null) return;
             var pathCells = _chessGridNavigator.FindPath(piece.PieceModel.PieceType, move.From, move.To, grid);
             if (pathCells is null) return;
 
