@@ -40,8 +40,14 @@ namespace App.Scripts.Scenes.SceneFillwords.Features.ProviderLevel
             {
                 Dictionary<string, List<int>> currentLevel = _levels[index - 1];
                 int size = CalculateGridSize(currentLevel);
-                GridFillWords gridFillWords = new GridFillWords(new Vector2Int(size, size));
-                FillGrid(currentLevel, gridFillWords, size);
+                GridFillWords gridFillWords = FillGrid(currentLevel, size);
+                
+                if (!IsGridValid(gridFillWords))
+                {
+                    Debug.LogError($"LoadModel error: Incorrect level data");
+                    return null;
+                }
+                
                 return gridFillWords;
             }
             catch (Exception ex)
@@ -51,15 +57,36 @@ namespace App.Scripts.Scenes.SceneFillwords.Features.ProviderLevel
             }
         }
 
-        private void FillGrid(Dictionary<string, List<int>> currentLevel, GridFillWords gridFillWords, int size)
+        private GridFillWords FillGrid(Dictionary<string, List<int>> currentLevel, int size)
         {
+            GridFillWords gridFillWords = new GridFillWords(new Vector2Int(size, size));
             foreach (KeyValuePair<string, List<int>> kvp in currentLevel)
             {
                 foreach (int idx in kvp.Value)
                 {
+                    if (kvp.Value.Count != kvp.Key.Length)
+                    {
+                        throw new Exception("FillGrid error: Mismatched letters and cells");
+                    }
                     gridFillWords.Set(idx / size, idx % size, new CharGridModel(kvp.Key[kvp.Value.IndexOf(idx)]));
                 }
             }
+            return gridFillWords;
+        }
+        
+        private bool IsGridValid(GridFillWords gridFillWords)
+        {
+            for (int i = 0; i < gridFillWords.Size.x; i++)
+            {
+                for (int j = 0; j < gridFillWords.Size.y; j++)
+                {
+                    if (gridFillWords.Get(i, j) == null)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
         private int CalculateGridSize(Dictionary<string, List<int>> currentLevel)
@@ -106,7 +133,8 @@ namespace App.Scripts.Scenes.SceneFillwords.Features.ProviderLevel
                             }
                         }
 
-                        levelDictionary[_words[key]] = intValues;
+                        string trimmedWord = _words[key].Trim('\r', '\n');
+                        levelDictionary[trimmedWord] = intValues;
                     }
                 }
             }
