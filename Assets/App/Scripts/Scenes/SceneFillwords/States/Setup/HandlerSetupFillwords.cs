@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using App.Scripts.Infrastructure.GameCore.States.SetupState;
 using App.Scripts.Infrastructure.LevelSelection;
@@ -13,6 +14,8 @@ namespace App.Scripts.Scenes.SceneFillwords.States.Setup
         private readonly IProviderFillwordLevel _providerFillwordLevel;
         private readonly IServiceLevelSelection _serviceLevelSelection;
         private readonly ViewGridLetters _viewGridLetters;
+        
+        private int _prevLevelIndex;
 
         public HandlerSetupFillwords(IProviderFillwordLevel providerFillwordLevel,
             IServiceLevelSelection serviceLevelSelection,
@@ -26,8 +29,26 @@ namespace App.Scripts.Scenes.SceneFillwords.States.Setup
 
         public Task Process()
         {
-            var model = _providerFillwordLevel.LoadModel(_serviceLevelSelection.CurrentLevelIndex);
+            GridFillWords model;
+            int firstSelectedLevelIndex = _serviceLevelSelection.CurrentLevelIndex;
+            int offset = firstSelectedLevelIndex - _prevLevelIndex > 0 ? 1 : -1;
+            while (true)
+            {
+                model = _providerFillwordLevel.LoadModel(_serviceLevelSelection.CurrentLevelIndex);
+                if (model != null)
+                {
+                    break;  
+                }
+                
+                _serviceLevelSelection.UpdateSelectedLevel(_serviceLevelSelection.CurrentLevelIndex + offset);
+                
+                if (_serviceLevelSelection.CurrentLevelIndex == firstSelectedLevelIndex)
+                {
+                    throw new Exception("No correct levels");
+                }
+            }
 
+            _prevLevelIndex = _serviceLevelSelection.CurrentLevelIndex;
             _viewGridLetters.UpdateItems(model);
             _containerGrid.SetupGrid(model, _serviceLevelSelection.CurrentLevelIndex);
             return Task.CompletedTask;

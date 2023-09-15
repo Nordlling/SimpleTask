@@ -13,18 +13,15 @@ namespace App.Scripts.Scenes.SceneWordSearch.Features.Level.BuilderLevelModel.Pr
         {
             try
             {
-                // string json = File.ReadAllText($"{levelsPath}/{levelIndex}.json");
                 string json = Resources.Load<TextAsset>($"{levelsPath}/{levelIndex}").text;
-
                 LevelInfo levelInfo = JsonUtility.FromJson<LevelInfo>(json);
                 return levelInfo;
             } 
             catch (Exception ex)
             {
-                Debug.LogError($"Parse error: {ex.Message}");  
+                Debug.LogError($"Parse error: {ex.Message}");
+                return null;
             }
-
-            return null;
         }
     }
 }
