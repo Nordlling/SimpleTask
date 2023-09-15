@@ -13,7 +13,7 @@ namespace App.Scripts.Scenes.SceneFillwords.Features.ProviderLevel
         private const string levelsPackPath = "Fillwords/pack_0";
         private const string wordsListPath = "Fillwords/words_list";
 
-        private static readonly List<Dictionary<string, List<int>>> _levels = new();
+        private static readonly List<Dictionary<string, int[]>> _levels = new();
 
         public ProviderFillwordLevel()
         {
@@ -27,18 +27,14 @@ namespace App.Scripts.Scenes.SceneFillwords.Features.ProviderLevel
         {
             string[] words = ParseFile(wordsListPath);
             string[] levelRows = ParseFile(levelsPackPath);
-            foreach (var levelRow in levelRows)
-            {
-                Dictionary<string, List<int>> levelDictionary = ConvertWordsToLevelDictionary(levelRow, words);
-                _levels.Add(levelDictionary);
-            }
+            ConvertStringDataToLevelDictionary(levelRows, words);
         }
         
         public GridFillWords LoadModel(int index)
         {
             try
             {
-                Dictionary<string, List<int>> currentLevel = _levels[index - 1];
+                Dictionary<string, int[]> currentLevel = _levels[index - 1];
                 int size = CalculateGridSize(currentLevel);
                 GridFillWords gridFillWords = FillGrid(currentLevel, size);
                 
@@ -57,18 +53,18 @@ namespace App.Scripts.Scenes.SceneFillwords.Features.ProviderLevel
             }
         }
 
-        private GridFillWords FillGrid(Dictionary<string, List<int>> currentLevel, int size)
+        private GridFillWords FillGrid(Dictionary<string, int[]> currentLevel, int size)
         {
             GridFillWords gridFillWords = new GridFillWords(new Vector2Int(size, size));
-            foreach (KeyValuePair<string, List<int>> kvp in currentLevel)
+            foreach (KeyValuePair<string, int[]> kvp in currentLevel)
             {
                 foreach (int idx in kvp.Value)
                 {
-                    if (kvp.Value.Count != kvp.Key.Length)
+                    if (kvp.Value.Length != kvp.Key.Length)
                     {
                         throw new Exception("FillGrid error: Mismatched letters and cells");
                     }
-                    gridFillWords.Set(idx / size, idx % size, new CharGridModel(kvp.Key[kvp.Value.IndexOf(idx)]));
+                    gridFillWords.Set(idx / size, idx % size, new CharGridModel(kvp.Key[Array.IndexOf(kvp.Value, idx)]));
                 }
             }
             return gridFillWords;
@@ -89,9 +85,9 @@ namespace App.Scripts.Scenes.SceneFillwords.Features.ProviderLevel
             return true;
         }
 
-        private int CalculateGridSize(Dictionary<string, List<int>> currentLevel)
+        private int CalculateGridSize(Dictionary<string, int[]> currentLevel)
         {
-            double gridLength = currentLevel.Sum(kvp => kvp.Value.Count);
+            double gridLength = currentLevel.Sum(kvp => kvp.Value.Length);
             double size = Math.Sqrt(gridLength);
             if (size == 0 || size % 1 != 0)
             {
@@ -100,50 +96,41 @@ namespace App.Scripts.Scenes.SceneFillwords.Features.ProviderLevel
             return (int)size;
         }
 
-        private Dictionary<string, List<int>> ConvertWordsToLevelDictionary(string row, string[] _words)
+        private void ConvertStringDataToLevelDictionary(string[] levelRows, string[] words)
         {
-            Dictionary<string, List<int>> levelDictionary = new();
-            string pattern = @"(\d+\s[\d;]+)";
+            const string levelWordPattern = @"(\d+\s[\d;]+)";
 
-            try
+            foreach (var levelRow in levelRows)
             {
-                MatchCollection matches = Regex.Matches(row, pattern);
-                string[] rowArray = new string[matches.Count];
-
-                for (int i = 0; i < matches.Count; i++)
+                Dictionary<string, int[]> level = new();
+                try
                 {
-                    rowArray[i] = matches[i].Value;
-                }
-
-                foreach (string input in rowArray)
-                {
-                    string[] parts = input.Split(" ");
-
-                    if (parts.Length == 2)
+                    MatchCollection matches = Regex.Matches(levelRow, levelWordPattern);
+                    string[] levelWords = matches.Select(match => match.Value).ToArray();
+                    
+                    foreach (string levelWord in levelWords)
                     {
-                        int key = int.Parse(parts[0]);
-                        string[] values = parts[1].Split(';');
-                        List<int> intValues = new List<int>();
+                        string[] parts = levelWord.Split(" ");
 
-                        foreach (string value in values)
+                        if (parts.Length != 2)
                         {
-                            if (int.TryParse(value, out int intValue))
-                            {
-                                intValues.Add(intValue);
-                            }
+                            continue;
                         }
+                        
+                        int wordIndex = int.Parse(parts[0]);
+                        int[] gridPositions = parts[1].Split(';').Select(int.Parse).ToArray();
 
-                        string trimmedWord = _words[key].Trim('\r', '\n');
-                        levelDictionary[trimmedWord] = intValues;
+                        string word = words[wordIndex].Trim();
+                        level[word] = gridPositions;
                     }
+                    
+                    _levels.Add(level);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Convert string '{levelRow}' to object error: {ex.Message}");
                 }
             }
-            catch(Exception ex)
-            {
-                Debug.LogError($"Convert string to object error: {ex.Message}");
-            }
-
-            return levelDictionary;
         }
         
         private static string[] ParseFile(string filePath)
