@@ -24,14 +24,14 @@ namespace App.Scripts.Scenes.SceneChess.Features.GridNavigation.Navigator
         
         private readonly Vector2Int[] kingPoints =
         {
-            new(1, 1),
             new(1, 0),
-            new(1, -1),
             new(0, -1),
-            new(-1, -1),
             new(-1, 0),
-            new(-1, 1),
-            new(0, 1)
+            new(0, 1),
+            new(1, 1),
+            new(1, -1),
+            new(-1, -1),
+            new(-1, 1)
         };
         
         private readonly Vector2Int[] ponPoints =
